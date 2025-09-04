@@ -12,5 +12,5 @@ Analyze your playlists and uncover the emotional vibes behind your music. The Sp
 Frontend: React, Chart.js, TailwindCSS<br>
 Backend: Node.js, Express<br>
 Database: MongoDB<br>
-Integration: Spotify Web API<br>
+Integration: Spotify Web API, Gemini API<br>
 Deployment: Vercel
