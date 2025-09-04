@@ -1,5 +1,5 @@
 🎵 Spotify Mood Analyzer<br>
-Analyze your playlists and uncover the emotional vibes behind your music. The Spotify Mood Analyzer uses the Spotify Web API to classify songs and playlists by mood (happy, chill, energetic, sad) based on audio features such as valence, energy, tempo, and danceability.
+Analyze your playlists and uncover the emotional vibes behind your music. The Spotify Mood Analyzer uses the Spotify Web API and Gemini API to classify songs and playlists by mood (happy, chill, energetic, sad) based on audio features such as valence, energy, tempo, and danceability.
 
 🚀 Features<br>
 🔐 Spotify Login via OAuth 2.0 for personalized playlist analysis<br>
