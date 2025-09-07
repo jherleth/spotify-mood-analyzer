@@ -3,9 +3,11 @@ const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
 const querystring = require("querystring");
+const analyzeRouter = require("./routes/analyze.js");
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 const SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize";
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
@@ -74,6 +76,8 @@ app.get("/refresh_token", async (req, res) => {
 		res.send("Error refreshing token");
 	}
 });
+
+app.use("/api", analyzeRouter);
 
 const PORT = 8000;
 app.listen(PORT, () => {
