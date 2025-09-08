@@ -13,7 +13,7 @@ const SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize";
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 
 app.get("/login", (req, res) => {
-	const scope = "user-read-private user-read-email playlist-read-private"
+	const scope = "user-read-private user-read-email playlist-read-private";
 	const params = querystring.stringify({
 		response_type: "code",
 		client_id: process.env.SPOTIFY_CLIENT_ID,
@@ -37,7 +37,7 @@ app.get("/callback", async (req, res) => {
 				client_secret: process.env.SPOTIFY_CLIENT_SECRET,
 			}),
 			{
-				headers: { "Content-Type": "application/x-www-form-urlencoded"},
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
 			}
 		);
 
@@ -83,8 +83,3 @@ const PORT = 8000;
 app.listen(PORT, () => {
 	console.log(`Backend running on http://127.0.0.1:${PORT}`);
 });
-
-
-
-
-
