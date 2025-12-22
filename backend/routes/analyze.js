@@ -28,7 +28,7 @@ async function fetchMBID(trackName, artistName) {
 	)}%20AND%20artist:${encodeURIComponent(artistName)}&fmt=json&limit=1`;
 
 	const res = await fetch(url, {
-		headers: { "User-Agent": "MoodAnalyzer/1.0 (https://github.com/your-repo)" },
+		headers: { "User-Agent": "MoodAnalyzer/1.0 (https://github.com/jherleth/spotify-mood-analyzer)" },
 	});
 	const data = await res.json();
 	return data.recordings?.[0]?.id || null;
