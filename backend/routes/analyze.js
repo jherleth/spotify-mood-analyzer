@@ -1,5 +1,6 @@
 const express = require("express");
 const fetch = require("node-fetch");
+const pLimit = require('p-limit') // small batches for API calls
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const router = express.Router();
@@ -68,19 +69,24 @@ router.get("/analyze", async (req, res) => {
 		}
 
 		// 2. map Spotify tracks -> MusicBrainz MBIDs -> AcousticBrainz features
-		const features = [];
-		for (const item of playlistData.items.slice(0, 20)) {
-			// limit for speed
-			const track = item.track;
-			if (!track || !track.name || !track.artists?.length) continue;
+		const limit = pLimit(3); // throttled parallelism -> respect the API (3 req at same time)
+		const enrichmentPromises = playlistData.items.slice(0, 20).map((item) => {
+			// 20 tracks
+			return limit(async () => {
+				const track = item.track;
+				const artistName = track.artist[0].name;
 
-			const artistName = track.artists[0].name;
-			const mbid = await fetchMBID(track.name, artistName);
-			if (!mbid) continue;
+				const mbid = await fetchMBID(track.name, artistName)
+				if (!mbid) return null;
 
-			const abFeatures = await fetchAcousticBrainz(mbid);
-			if (abFeatures) features.push(abFeatures);
-		}
+				return await fetchAcousticBrainz(mbid);
+			});
+		});
+
+		const results = await Promise.all(enrichmentPromises); // parallelism
+		const features = results.filter(f => f !== null); // filters null response
+
+
 
 		if (!features.length) {
 			return res.status(400).json({
