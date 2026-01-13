@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import MoodRadar from "./components/MoodRadar";
 
 function App() {
 	const [accessToken, setAccessToken] = useState(null);
@@ -210,36 +211,14 @@ function App() {
 									</p>
 								</div>
 
-								{/* Right Col: Stats */}
-								<div className="space-y-4">
-									{/* Stat Cards */}
-									<div className="bg-black/30 p-4 rounded-xl border border-white/5 flex items-center justify-between">
-										<span className="text-neutral-400">Danceability</span>
-										<div className="w-1/2 bg-neutral-800 rounded-full h-2">
-											<div
-												className="bg-[var(--color-cyan)] h-2 rounded-full shadow-[0_0_10px_var(--color-cyan)]"
-												style={{ width: `${(result.avgDanceability || 0) * 100}%` }}
-											></div>
-										</div>
-										<span className="font-mono text-[var(--color-cyan)]">{(result.avgDanceability * 100).toFixed(0)}%</span>
-									</div>
+								{/* Right Col: Stats / Radar Chart */}
+								<div className="bg-black/30 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center min-h-[300px]">
+									<h3 className="text-[var(--color-cyan)] uppercase tracking-widest text-sm mb-4">Vibe Radar</h3>
+									<MoodRadar data={result} />
 
-									<div className="bg-black/30 p-4 rounded-xl border border-white/5 flex items-center justify-between">
-										<span className="text-neutral-400">Positivity</span>
-										<div className="w-1/2 bg-neutral-800 rounded-full h-2">
-											<div
-												className="bg-[var(--color-neon-pink)] h-2 rounded-full shadow-[0_0_10px_var(--color-neon-pink)]"
-												style={{ width: `${(result.avgMood || 0) * 100}%` }}
-											></div>
-										</div>
-										<span className="font-mono text-[var(--color-neon-pink)]">{(result.avgMood * 100).toFixed(0)}%</span>
-									</div>
-
-									<div className="bg-black/30 p-4 rounded-xl border border-white/5 flex items-center justify-between">
-										<span className="text-neutral-400">Tempo</span>
-										<span className="font-mono text-xl text-white tracking-widest">
-											{result.avgTempo?.toFixed(0)} <span className="text-xs text-neutral-500">BPM</span>
-										</span>
+									<div className="w-full flex justify-between px-4 mt-4 text-xs text-neutral-500 font-mono">
+										<span>Tempo: {result.avgTempo?.toFixed(0)} BPM</span>
+										<span>{(result.avgDanceability * 100).toFixed(0)}% Dance</span>
 									</div>
 
 									<button
@@ -247,7 +226,7 @@ function App() {
 											setResult(null);
 											setSelectedPlaylist(null);
 										}}
-										className="w-full mt-8 py-3 rounded-lg border border-white/20 hover:bg-white/5 hover:border-[var(--color-cyan)] hover:text-[var(--color-cyan)] transition-colors uppercase tracking-widest text-sm"
+										className="w-full mt-6 py-3 rounded-lg border border-white/20 hover:bg-white/5 hover:border-[var(--color-cyan)] hover:text-[var(--color-cyan)] transition-colors uppercase tracking-widest text-sm"
 									>
 										Analyze Another
 									</button>

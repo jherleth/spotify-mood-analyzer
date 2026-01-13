@@ -8,19 +8,28 @@ const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // --- mood classifier based on AcousticBrainz features ---
+// --- mood classifier based on AcousticBrainz features ---
 function classifyMood(features) {
-	const avgDanceability =
-		features.reduce((s, f) => s + (f.danceability ?? 0), 0) / features.length;
-	const avgMood =
-		features.reduce((s, f) => s + (f.mood ?? 0), 0) / features.length;
-	const avgTempo =
-		features.reduce((s, f) => s + (f.tempo ?? 0), 0) / features.length;
+	if (!features || features.length === 0) return "Unknown";
 
-	if (avgDanceability > 0.6 && avgMood > 0.6) return "Energetic / Happy";
-	if (avgDanceability > 0.6 && avgMood <= 0.6) return "Chill / Groovy";
-	if (avgMood < 0.4) return "Sad / Low Energy";
-	if (avgTempo > 120) return "Fast / Intense";
-	return "Calm / Reflective";
+	const avg = (key) => features.reduce((s, f) => s + (f[key] ?? 0), 0) / features.length;
+
+	const dance = avg('danceability');
+	const mood = avg('mood');
+	const tempo = avg('tempo');
+	const party = avg('party');
+	const aggressive = avg('aggressive');
+
+	// Classification Logic 2.0 (Priority Order)
+	if (aggressive > 0.65) return "Dark & Intense";
+	if (party > 0.70) return "High Voltage Party";
+	if (dance > 0.65 && mood > 0.65) return "Energetic & Happy";
+	if (mood < 0.35) return "Sad & Melancholic";
+	if (tempo > 135 && aggressive > 0.3) return "Fast & Intense";
+	if (dance > 0.7) return "Groovy & Laid Back";
+	if (dance < 0.4 && tempo < 100) return "Chill & Atmospheric";
+
+	return "Calm & Reflective";
 }
 
 // --- helper: find MusicBrainz ID for a track ---
@@ -61,11 +70,15 @@ async function fetchAcousticBrainz(mbid) {
 		let danceability = 0;
 		let mood = 0;
 		let tempo = 0;
+		let party = 0;
+		let aggressive = 0;
 
 		if (highRes.ok) {
 			const highData = await highRes.json();
 			danceability = highData.highlevel?.danceability?.all?.danceable ?? 0;
 			mood = highData.highlevel?.mood_happy?.all?.happy ?? 0;
+			party = highData.highlevel?.mood_party?.all?.party ?? 0;
+			aggressive = highData.highlevel?.mood_aggressive?.all?.aggressive ?? 0;
 		}
 
 		if (lowRes.ok) {
@@ -76,7 +89,7 @@ async function fetchAcousticBrainz(mbid) {
 		// If both failed, return null
 		if (!highRes.ok && !lowRes.ok) return null;
 
-		return { danceability, mood, tempo };
+		return { danceability, mood, tempo, party, aggressive };
 	} catch (err) {
 		console.error(`Error fetching AB for ${mbid}:`, err.message);
 		return null;
@@ -144,6 +157,8 @@ router.get("/analyze", async (req, res) => {
 				features.reduce((s, f) => s + f.danceability, 0) / features.length,
 			avgMood: features.reduce((s, f) => s + f.mood, 0) / features.length,
 			avgTempo: features.reduce((s, f) => s + f.tempo, 0) / features.length,
+			avgParty: features.reduce((s, f) => s + (f.party ?? 0), 0) / features.length,
+			avgAggressive: features.reduce((s, f) => s + (f.aggressive ?? 0), 0) / features.length,
 		};
 
 		summary.mood = classifyMood(features);
