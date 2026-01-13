@@ -1,7 +1,8 @@
 const express = require("express");
 const fetch = require("node-fetch");
-const pLimit = require('p-limit') // small batches for API calls
+const { default: pLimit } = require('p-limit');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { withCache } = require("../lib/redis");
 
 const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -23,30 +24,63 @@ function classifyMood(features) {
 }
 
 // --- helper: find MusicBrainz ID for a track ---
-async function fetchMBID(trackName, artistName) {
-	const url = `https://musicbrainz.org/ws/2/recording/?query=recording:${encodeURIComponent(
-		trackName
-	)}%20AND%20artist:${encodeURIComponent(artistName)}&fmt=json&limit=1`;
+// --- helper: find MusicBrainz ID for a track ---
+async function fetchMBID(trackName, artistName, isrc) {
+	let query = "";
+	if (isrc) {
+		query = `isrc:${isrc}`;
+	} else {
+		query = `recording:${encodeURIComponent(trackName)}%20AND%20artist:${encodeURIComponent(artistName)}`;
+	}
 
-	const res = await fetch(url, {
-		headers: { "User-Agent": "MoodAnalyzer/1.0 (https://github.com/jherleth/spotify-mood-analyzer)" },
-	});
-	const data = await res.json();
-	return data.recordings?.[0]?.id || null;
+	const url = `https://musicbrainz.org/ws/2/recording/?query=${query}&fmt=json&limit=1`;
+
+	try {
+		const res = await fetch(url, {
+			headers: { "User-Agent": "MoodAnalyzer/1.0 (https://github.com/jherleth/spotify-mood-analyzer)" },
+		});
+		const data = await res.json();
+		return data.recordings?.[0]?.id || null;
+	} catch (err) {
+		console.error(`Error fetching MBID for ${trackName}:`, err.message);
+		return null;
+	}
 }
 
 // --- helper: get AcousticBrainz features ---
 async function fetchAcousticBrainz(mbid) {
-	const url = `https://acousticbrainz.org/${mbid}/high-level`;
-	const res = await fetch(url);
-	if (!res.ok) return null;
-	const data = await res.json();
+	const highLevelUrl = `https://acousticbrainz.org/${mbid}/high-level`;
+	const lowLevelUrl = `https://acousticbrainz.org/${mbid}/low-level`;
 
-	return {
-		danceability: data.highlevel?.danceability?.all?.danceable ?? 0,
-		mood: data.highlevel?.mood_happy?.all?.happy ?? 0,
-		tempo: data.rhythm?.bpm ?? 0,
-	};
+	try {
+		const [highRes, lowRes] = await Promise.all([
+			fetch(highLevelUrl),
+			fetch(lowLevelUrl)
+		]);
+
+		let danceability = 0;
+		let mood = 0;
+		let tempo = 0;
+
+		if (highRes.ok) {
+			const highData = await highRes.json();
+			danceability = highData.highlevel?.danceability?.all?.danceable ?? 0;
+			mood = highData.highlevel?.mood_happy?.all?.happy ?? 0;
+		}
+
+		if (lowRes.ok) {
+			const lowData = await lowRes.json();
+			tempo = lowData.rhythm?.bpm ?? 0;
+		}
+
+		// If both failed, return null
+		if (!highRes.ok && !lowRes.ok) return null;
+
+		return { danceability, mood, tempo };
+	} catch (err) {
+		console.error(`Error fetching AB for ${mbid}:`, err.message);
+		return null;
+	}
 }
 
 // --- analyze route ---
@@ -74,12 +108,20 @@ router.get("/analyze", async (req, res) => {
 			// 20 tracks
 			return limit(async () => {
 				const track = item.track;
-				const artistName = track.artist[0].name;
+				const artistName = track.artists[0].name;
+				const isrc = track.external_ids?.isrc;
 
-				const mbid = await fetchMBID(track.name, artistName)
-				if (!mbid) return null;
+				// Prefer ISRC for cache key if available, otherwise fallback to name
+				const cacheKey = isrc ? `track:isrc:${isrc}` : `track:${track.name}:${artistName}`.toLowerCase().replace(/\s/g, '_');
 
-				return await fetchAcousticBrainz(mbid);
+				const mbid = await withCache(cacheKey, 86400, () => fetchMBID(track.name, artistName, isrc));
+
+				if (mbid) {
+					// Correctly return the result from cache/fetch, instead of trying to push to a non-existent array
+					return await withCache(`features:${mbid}`, 86400, () => fetchAcousticBrainz(mbid));
+				}
+
+				return null;
 			});
 		});
 

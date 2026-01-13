@@ -69,126 +69,206 @@ function App() {
 	};
 
 	return (
-		<div className="min-h-screen flex justify-center items-center bg-gradient-to-br from-green-500 via-neutral-900 to-black text-white font-sans p-6">
-			<div className="bg-neutral-900 p-8 rounded-2xl shadow-2xl w-full max-w-5xl text-center">
-				<h1 className="text-4xl font-bold mb-6 flex items-center justify-center gap-2">
-					🎧 Spotify Mood Analyzer
+		<div className="min-h-screen flex flex-col justify-center items-center text-white font-sans p-6 relative z-0">
+
+			{/* Main Container */}
+			<div className="glass-panel w-full max-w-6xl rounded-xl p-8 relative overflow-hidden">
+
+				{/* Decorative decorative glow */}
+				<div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-gradient-to-r from-transparent via-[var(--color-cyan)] to-transparent opacity-70 blur-sm"></div>
+
+				<h1 className="text-4xl md:text-6xl font-bold mb-10 text-center uppercase tracking-widest relative z-10">
+					<span className="text-[var(--color-neon-pink)] drop-shadow-[0_0_10px_rgba(255,0,127,0.8)]">Mood</span>
+					<span className="text-[var(--color-cyan)] drop-shadow-[0_0_10px_rgba(0,243,255,0.8)] ml-4">Analyzer</span>
 				</h1>
 
 				{!accessToken ? (
-					<a href="http://127.0.0.1:8000/login">
-						<button className="bg-green-500 hover:bg-green-400 transition px-6 py-3 rounded-lg text-lg font-semibold">
-							Login with Spotify
-						</button>
-					</a>
+					<div className="flex flex-col items-center justify-center py-20">
+						<p className="text-xl mb-8 text-neutral-300 max-w-lg text-center font-light">
+							Connect your Spotify account to discover the hidden emotional landscape of your favorite playlists.
+						</p>
+						<a href="http://127.0.0.1:8000/login">
+							<button className="retro-button text-lg px-10 py-4 rounded-full shadow-[0_0_20px_rgba(255,0,127,0.4)]">
+								Login with Spotify
+							</button>
+						</a>
+					</div>
 				) : (
 					<>
-						<p className="mb-6">✅ Logged in with Spotify</p>
+						<div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+							<p className="text-xl text-[var(--color-cyan)]">Logged in & Ready</p>
+							<button
+								onClick={() => {
+									localStorage.clear();
+									window.location.reload();
+								}}
+								className="text-sm text-neutral-400 hover:text-white underline"
+							>
+								Logout
+							</button>
+						</div>
 
 						{/* Playlist grid */}
 						{playlists.length > 0 && !loading && !result && (
-							<div>
-								<h2 className="text-xl font-semibold mb-4">Pick a Playlist</h2>
-								<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+							<div className="animate-fade-in-up">
+								<h2 className="text-2xl mb-6 flex items-center gap-2">
+									<span className="w-2 h-8 bg-[var(--color-neon-pink)] rounded-full"></span>
+									Select a Playlist
+								</h2>
+								<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
 									{playlists.map((pl) => (
 										<div
 											key={pl.id}
 											onClick={() => setSelectedPlaylist(pl)}
-											className={`cursor-pointer rounded-lg overflow-hidden shadow-lg transform hover:scale-105 transition ${
-												selectedPlaylist?.id === pl.id
-													? "ring-4 ring-green-500"
-													: "ring-1 ring-neutral-700"
-											}`}
+											className={`group cursor-pointer relative rounded-lg overflow-hidden transition-all duration-300 transform hover:-translate-y-2 ${selectedPlaylist?.id === pl.id
+												? "ring-2 ring-[var(--color-cyan)] shadow-[0_0_20px_rgba(0,243,255,0.5)] scale-105"
+												: "hover:ring-2 hover:ring-[var(--color-neon-pink)] hover:shadow-[0_0_15px_rgba(255,0,127,0.5)]"
+												}`}
 										>
-											<img
-												src={pl.images?.[0]?.url}
-												alt={pl.name}
-												className="w-full h-40 object-cover"
-											/>
-											<div className="bg-neutral-800 p-2 text-sm font-medium truncate">
-												{pl.name}
+											<div className="aspect-square w-full bg-neutral-800 relative">
+												{pl.images?.[0]?.url ? (
+													<img
+														src={pl.images[0].url}
+														alt={pl.name}
+														className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
+													/>
+												) : (
+													<div className="w-full h-full flex items-center justify-center text-neutral-600">No Cover</div>
+												)}
+
+												{/* Overlay gradient */}
+												<div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+													<span className="text-[var(--color-cyan)] text-xs font-bold uppercase tracking-wider">Select</span>
+												</div>
+											</div>
+											<div className="bg-[#150a25] p-3 border-t border-white/5">
+												<div className="font-medium truncate text-sm text-neutral-200 group-hover:text-[var(--color-neon-pink)] transition-colors">
+													{pl.name}
+												</div>
 											</div>
 										</div>
 									))}
 								</div>
 
 								{selectedPlaylist && (
-									<button
-										onClick={analyzePlaylist}
-										className="mt-6 bg-green-500 hover:bg-green-400 transition px-6 py-2 rounded-lg font-medium"
-									>
-										Analyze "{selectedPlaylist.name}"
-									</button>
+									<div className="fixed bottom-10 left-0 right-0 flex justify-center z-50 pointer-events-none">
+										<button
+											onClick={analyzePlaylist}
+											className="retro-button pointer-events-auto shadow-2xl scale-125"
+										>
+											Analyze "{selectedPlaylist.name}"
+										</button>
+									</div>
 								)}
 							</div>
 						)}
 
-						{/* loading spinner + album covers */}
+						{/* loading view */}
 						{loading && (
-							<div className="mt-6">
-								<div className="animate-spin h-12 w-12 border-4 border-white/20 border-t-green-500 rounded-full mx-auto"></div>
-								<p className="mt-4">Analyzing "{selectedPlaylist?.name}"...</p>
+							<div className="flex flex-col items-center justify-center py-20">
+								<div className="relative w-24 h-24 mb-8">
+									<div className="absolute inset-0 border-4 border-[var(--color-deep-purple)] rounded-full"></div>
+									<div className="absolute inset-0 border-4 border-t-[var(--color-neon-pink)] border-r-[var(--color-cyan)] border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+									<div className="absolute inset-4 border-4 border-t-transparent border-r-transparent border-b-[var(--color-cyan)] border-l-[var(--color-neon-pink)] rounded-full animate-spin reverse-spin"></div>
+								</div>
 
-								{/* album covers preview */}
-								<div className="grid grid-cols-5 gap-2 mt-4">
-									{tracks.slice(0, 10).map((t, i) => (
-										<img
-											key={i}
-											src={t.track?.album?.images?.[0]?.url}
-											alt={t.track?.name}
-											className="w-full h-20 object-cover rounded animate-pulse"
-										/>
-									))}
+								<h2 className="text-2xl font-bold animate-pulse text-[var(--color-cyan)]">
+									Analyzing Vibes...
+								</h2>
+								<p className="mt-2 text-neutral-400">Scanning frequency modulation & beat detection</p>
+
+								{/* album covers stream */}
+								<div className="w-full overflow-hidden mt-12 relative h-32 mask-linear">
+									<div className="flex gap-4 absolute left-1/2 -translate-x-1/2 animate-scroll-left w-max">
+										{[...tracks, ...tracks].slice(0, 20).map((t, i) => ( // Duplicate for seamless feel if needed, simplified here
+											<img
+												key={i}
+												src={t.track?.album?.images?.[0]?.url}
+												alt=""
+												className="w-24 h-24 rounded-md shadow-lg border border-white/10 opacity-70"
+											/>
+										))}
+									</div>
 								</div>
 							</div>
 						)}
 
 						{/* Results */}
 						{result && !result.error && !loading && (
-							<div className="mt-8 bg-neutral-800 p-6 rounded-lg text-left">
-								<h2 className="text-2xl font-bold mb-4">✨ Playlist Mood</h2>
-								<p className="mb-2">
-									<strong>Mood:</strong> {result.mood}
-								</p>
-								<p className="mb-4">
-									<strong>AI Description:</strong> {result.aiDescription}
-								</p>
-								<ul className="space-y-1">
-									{result.avgDanceability !== undefined && (
-										<li>💃 Danceability: {result.avgDanceability.toFixed(2)}</li>
-									)}
-									{result.avgMood !== undefined && (
-										<li>😊 Mood (happy): {result.avgMood.toFixed(2)}</li>
-									)}
-									{result.avgTempo !== undefined && (
-										<li>🥁 Tempo: {result.avgTempo.toFixed(1)} BPM</li>
-									)}
-								</ul>
-								<button
-									onClick={() => {
-										setResult(null);
-										setSelectedPlaylist(null);
-									}}
-									className="mt-6 bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg"
-								>
-									🔄 Analyze another playlist
-								</button>
+							<div className="animate-fade-in mt-6 grid md:grid-cols-2 gap-8 items-start">
+
+								{/* Left Col: Main Mood */}
+								<div className="bg-black/30 p-8 rounded-2xl border border-[var(--color-neon-pink)]/30 relative overflow-hidden group">
+									<div className="absolute inset-0 bg-[var(--color-neon-pink)]/5 group-hover:bg-[var(--color-neon-pink)]/10 transition-colors"></div>
+
+									<h2 className="text-xl text-[var(--color-text-muted)] uppercase tracking-widest mb-2">Detected Mood</h2>
+									<div className="text-5xl md:text-6xl font-bold text-white drop-shadow-[0_0_10px_rgba(255,0,127,0.5)] mb-6">
+										{result.mood}
+									</div>
+									<p className="text-lg leading-relaxed text-neutral-300 border-l-4 border-[var(--color-cyan)] pl-4">
+										{result.aiDescription}
+									</p>
+								</div>
+
+								{/* Right Col: Stats */}
+								<div className="space-y-4">
+									{/* Stat Cards */}
+									<div className="bg-black/30 p-4 rounded-xl border border-white/5 flex items-center justify-between">
+										<span className="text-neutral-400">Danceability</span>
+										<div className="w-1/2 bg-neutral-800 rounded-full h-2">
+											<div
+												className="bg-[var(--color-cyan)] h-2 rounded-full shadow-[0_0_10px_var(--color-cyan)]"
+												style={{ width: `${(result.avgDanceability || 0) * 100}%` }}
+											></div>
+										</div>
+										<span className="font-mono text-[var(--color-cyan)]">{(result.avgDanceability * 100).toFixed(0)}%</span>
+									</div>
+
+									<div className="bg-black/30 p-4 rounded-xl border border-white/5 flex items-center justify-between">
+										<span className="text-neutral-400">Positivity</span>
+										<div className="w-1/2 bg-neutral-800 rounded-full h-2">
+											<div
+												className="bg-[var(--color-neon-pink)] h-2 rounded-full shadow-[0_0_10px_var(--color-neon-pink)]"
+												style={{ width: `${(result.avgMood || 0) * 100}%` }}
+											></div>
+										</div>
+										<span className="font-mono text-[var(--color-neon-pink)]">{(result.avgMood * 100).toFixed(0)}%</span>
+									</div>
+
+									<div className="bg-black/30 p-4 rounded-xl border border-white/5 flex items-center justify-between">
+										<span className="text-neutral-400">Tempo</span>
+										<span className="font-mono text-xl text-white tracking-widest">
+											{result.avgTempo?.toFixed(0)} <span className="text-xs text-neutral-500">BPM</span>
+										</span>
+									</div>
+
+									<button
+										onClick={() => {
+											setResult(null);
+											setSelectedPlaylist(null);
+										}}
+										className="w-full mt-8 py-3 rounded-lg border border-white/20 hover:bg-white/5 hover:border-[var(--color-cyan)] hover:text-[var(--color-cyan)] transition-colors uppercase tracking-widest text-sm"
+									>
+										Analyze Another
+									</button>
+								</div>
 							</div>
 						)}
 
 						{/* Error state */}
 						{result && result.error && !loading && (
-							<div className="mt-6 text-red-400 bg-red-900/40 p-4 rounded-lg">
-								<h2 className="font-semibold">❌ Error</h2>
-								<p>{result.error}</p>
-								{result.details && (
-									<pre className="whitespace-pre-wrap">{result.details}</pre>
-								)}
+							<div className="mt-6 border border-red-500/50 bg-red-900/20 p-6 rounded-lg text-center">
+								<h2 className="text-2xl text-red-400 mb-2 font-bold">System Error</h2>
+								<p className="text-neutral-300">{result.error}</p>
 							</div>
 						)}
 					</>
 				)}
 			</div>
+
+			<footer className="mt-12 text-sm text-neutral-600 font-mono">
+				v1.0.0 • Spotify Music Engine
+			</footer>
 		</div>
 	);
 }
