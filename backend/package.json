@@ -1,12 +1,22 @@
 {
-	"name": "backend",
-	"version": "1.0.0",
-	"description": "",
+	"name": "music-mood-analyzer-backend",
+	"version": "2.0.0",
+	"description": "Backend API for Spotify playlist mood analysis with data pipeline",
 	"main": "index.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"start": "node index.js",
+		"dev": "node --watch index.js",
+		"test": "jest --forceExit --detectOpenHandles",
+		"test:watch": "jest --watch --forceExit",
+		"test:coverage": "jest --coverage --forceExit --detectOpenHandles",
+		"lint": "eslint ."
 	},
-	"keywords": [],
+	"keywords": [
+		"spotify",
+		"mood-analysis",
+		"music",
+		"api"
+	],
 	"author": "",
 	"license": "ISC",
 	"type": "commonjs",
@@ -17,8 +27,13 @@
 		"dotenv": "^17.2.1",
 		"express": "^5.1.0",
 		"node-fetch": "^2.7.0",
-		"p-limit": "^7.2.0",
-		"querystring": "^0.2.1",
-		"redis": "^5.10.0"
+		"p-limit": "^3.1.0",
+		"sql.js": "^1.11.0"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"eslint": "^9.33.0",
+		"jest": "^29.7.0",
+		"supertest": "^7.0.0"
 	}
 }
