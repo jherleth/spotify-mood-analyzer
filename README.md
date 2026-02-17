@@ -1,6 +1,6 @@
 # Music Mood Analyzer
 
-[![CI](https://github.com/jherleth/music-mood-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/jherleth/music-mood-analyzer/actions/workflows/ci.yml)
+[![CI](https://github.com/jherleth/spotify-mood-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/jherleth/spotify-mood-analyzer/actions/workflows/ci.yml)
 
 A full-stack application that analyzes Spotify playlists to classify their emotional mood. Connects to three external APIs in a multi-stage enrichment pipeline: Spotify (playlist data), MusicBrainz (track identification), and AcousticBrainz (audio feature extraction), then classifies mood using rule-based logic and generates natural language descriptions via Google Gemini. Analysis results are persisted to a local SQLite database for historical insights and CSV export.
 
