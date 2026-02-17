@@ -2,17 +2,7 @@
 
 [![CI](https://github.com/jherleth/music-mood-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/jherleth/music-mood-analyzer/actions/workflows/ci.yml)
 
-A full-stack application that analyzes Spotify playlists to classify their emotional mood. Connects to three external APIs in a multi-stage enrichment pipeline — Spotify (playlist data), MusicBrainz (track identification), and AcousticBrainz (audio feature extraction) — then classifies mood using rule-based logic and generates natural language descriptions via Google Gemini. Analysis results are persisted to a local SQLite database for historical insights and CSV export.
-
-## Why This Is Technically Interesting
-
-- **Multi-API enrichment pipeline** — orchestrates 4 external APIs per request with throttled parallelism (`p-limit`), graceful degradation on partial failures, and per-track error isolation
-- **Exponential backoff with jitter** — custom retry logic handles 429 rate limits, respects `Retry-After` headers, and retries on 5xx errors (no external dependency)
-- **LRU cache with TTL** — hand-rolled in-memory cache with time-based expiration and size-bounded eviction (no Redis required)
-- **Data persistence pipeline** — SQLite (via sql.js/WebAssembly) stores every analysis with per-track feature breakdowns; supports historical queries and CSV export
-- **Structured JSON logging** — zero-dependency logger with levels, child contexts, and JSON output to stdout/stderr
-- **32 unit + integration tests** — mocked external APIs, cache behavior verification, classification edge cases, full HTTP endpoint testing via supertest
-- **CI pipeline** — GitHub Actions runs tests + lint on Node 20/22 for every PR
+A full-stack application that analyzes Spotify playlists to classify their emotional mood. Connects to three external APIs in a multi-stage enrichment pipeline: Spotify (playlist data), MusicBrainz (track identification), and AcousticBrainz (audio feature extraction), then classifies mood using rule-based logic and generates natural language descriptions via Google Gemini. Analysis results are persisted to a local SQLite database for historical insights and CSV export.
 
 ## Architecture
 
@@ -187,23 +177,6 @@ npm run test:watch
 cd backend && npm run lint
 cd frontend && npm run lint
 ```
-
-## Design Decisions
-
-**Why a custom cache instead of Redis?**
-A single-process Node app doesn't need distributed caching. The hand-rolled LRU cache with TTL demonstrates understanding of cache internals (eviction policies, time-based expiry) without infrastructure overhead. The interface is compatible with a Redis swap-in if the app scales.
-
-**Why exponential backoff with jitter?**
-External APIs (MusicBrainz, AcousticBrainz) enforce rate limits. Full jitter prevents thundering herd problems when multiple requests retry simultaneously. The implementation respects `Retry-After` headers for 429 responses before falling back to calculated delays.
-
-**Why sql.js over better-sqlite3?**
-`sql.js` is a pure WebAssembly build of SQLite — zero native compilation required, works on any Node.js version and platform without build tools. Trades slight memory overhead for universal portability.
-
-**Why persist analysis results?**
-Raw analysis data is expensive to compute (4+ API calls per track). Persisting enables historical insights, trend analysis, and CSV export without re-fetching. The schema is normalized (analyses → track_features) for efficient querying.
-
-**Why rule-based mood classification instead of ML?**
-The classifier is intentionally transparent — a recruiter or engineer can read the thresholds and understand the decision boundaries. This makes the system debuggable and auditable, which matters more than marginal accuracy gains from a black-box model.
 
 ## Tech Stack
 
