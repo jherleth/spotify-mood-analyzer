@@ -40,5 +40,8 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# Database
+backend/data/
+
 # Misc
 *.tgz

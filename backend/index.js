@@ -1,26 +1,45 @@
-require("dotenv").config();
+const config = require("./config");
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
 const querystring = require("querystring");
-const analyzeRouter = require("./routes/analyze.js");
+const logger = require("./lib/logger");
+const analyzeRouter = require("./routes/analyze");
+const insightsRouter = require("./routes/insights");
+const { close: closeDb } = require("./lib/db");
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: config.server.frontendUri }));
 app.use(express.json());
 
-const SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize";
-const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
+// --- request logging middleware ---
+app.use((req, res, next) => {
+	const start = Date.now();
+	res.on("finish", () => {
+		logger.info("request", {
+			method: req.method,
+			path: req.path,
+			status: res.statusCode,
+			durationMs: Date.now() - start,
+		});
+	});
+	next();
+});
 
+// --- health check ---
+app.get("/health", (req, res) => {
+	res.json({ status: "ok", uptime: process.uptime() });
+});
+
+// --- Spotify OAuth ---
 app.get("/login", (req, res) => {
-	const scope = "user-read-private user-read-email playlist-read-private";
 	const params = querystring.stringify({
 		response_type: "code",
-		client_id: process.env.SPOTIFY_CLIENT_ID,
-		scope,
-		redirect_uri: process.env.REDIRECT_URI,
+		client_id: config.spotify.clientId,
+		scope: config.spotify.scopes,
+		redirect_uri: config.spotify.redirectUri,
 	});
-	res.redirect(`${SPOTIFY_AUTH_URL}?${params}`);
+	res.redirect(`${config.spotify.authUrl}?${params}`);
 });
 
 app.get("/callback", async (req, res) => {
@@ -28,58 +47,78 @@ app.get("/callback", async (req, res) => {
 
 	try {
 		const response = await axios.post(
-			SPOTIFY_TOKEN_URL,
+			config.spotify.tokenUrl,
 			querystring.stringify({
 				grant_type: "authorization_code",
-				code: code,
-				redirect_uri: process.env.REDIRECT_URI,
-				client_id: process.env.SPOTIFY_CLIENT_ID,
-				client_secret: process.env.SPOTIFY_CLIENT_SECRET,
+				code,
+				redirect_uri: config.spotify.redirectUri,
+				client_id: config.spotify.clientId,
+				client_secret: config.spotify.clientSecret,
 			}),
-			{
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			}
+			{ headers: { "Content-Type": "application/x-www-form-urlencoded" } }
 		);
 
 		const { access_token, refresh_token } = response.data;
 
 		res.redirect(
-			`${process.env.FRONTEND_URI}/?${querystring.stringify({
+			`${config.server.frontendUri}/?${querystring.stringify({
 				access_token,
 				refresh_token,
 			})}`
 		);
 	} catch (err) {
-		console.error("Error getting tokens:", err.response?.data || err.message);
-		res.send("Error during authentication");
+		logger.error("OAuth callback failed", { error: err.response?.data || err.message });
+		res.status(500).send("Error during authentication");
 	}
 });
 
 app.get("/refresh_token", async (req, res) => {
 	const refresh_token = req.query.refresh_token;
+	if (!refresh_token) {
+		return res.status(400).json({ error: "Missing refresh_token" });
+	}
+
 	try {
 		const response = await axios.post(
-			SPOTIFY_TOKEN_URL,
+			config.spotify.tokenUrl,
 			querystring.stringify({
 				grant_type: "refresh_token",
-				refresh_token: refresh_token,
-				client_id: process.env.SPOTIFY_CLIENT_ID,
-				client_secret: process.env.SPOTIFY_CLIENT_SECRET,
+				refresh_token,
+				client_id: config.spotify.clientId,
+				client_secret: config.spotify.clientSecret,
 			}),
-			{
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			}
+			{ headers: { "Content-Type": "application/x-www-form-urlencoded" } }
 		);
 		res.json(response.data);
 	} catch (err) {
-		console.error("Error refreshing token:", err.response?.data || err.message);
-		res.send("Error refreshing token");
+		logger.error("Token refresh failed", { error: err.response?.data || err.message });
+		res.status(500).json({ error: "Failed to refresh token" });
 	}
 });
 
+// --- API routes ---
 app.use("/api", analyzeRouter);
+app.use("/api", insightsRouter);
 
-const PORT = 8000;
-app.listen(PORT, () => {
-	console.log(`Backend running on http://127.0.0.1:${PORT}`);
+// --- start server ---
+const server = app.listen(config.server.port, () => {
+	logger.info("Server started", {
+		port: config.server.port,
+		maxTracks: config.analysis.maxTracks,
+		cacheMaxSize: config.cache.maxSize,
+	});
 });
+
+// --- graceful shutdown ---
+function shutdown(signal) {
+	logger.info("Shutting down", { signal });
+	server.close(() => {
+		closeDb();
+		process.exit(0);
+	});
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+module.exports = app;

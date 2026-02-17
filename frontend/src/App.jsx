@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import MoodRadar from "./components/MoodRadar";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 function App() {
 	const [accessToken, setAccessToken] = useState(null);
 	const [playlists, setPlaylists] = useState([]);
@@ -57,7 +59,7 @@ function App() {
 
 			// call backend for analysis
 			const res = await fetch(
-				`http://127.0.0.1:8000/api/analyze?playlistID=${selectedPlaylist.id}&access_token=${accessToken}`
+				`${API_URL}/api/analyze?playlistID=${selectedPlaylist.id}&access_token=${accessToken}&playlistName=${encodeURIComponent(selectedPlaylist.name)}`
 			);
 			const data = await res.json();
 			setResult(data);
@@ -88,7 +90,7 @@ function App() {
 						<p className="text-xl mb-8 text-neutral-300 max-w-lg text-center font-light">
 							Connect your Spotify account to discover the hidden emotional landscape of your favorite playlists.
 						</p>
-						<a href="http://127.0.0.1:8000/login">
+						<a href={`${API_URL}/login`}>
 							<button className="retro-button text-lg px-10 py-4 rounded-full shadow-[0_0_20px_rgba(255,0,127,0.4)]">
 								Login with Spotify
 							</button>
