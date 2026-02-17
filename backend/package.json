@@ -31,7 +31,7 @@
 		"sql.js": "^1.11.0"
 	},
 	"devDependencies": {
-		"@eslint/js": "^10.0.1",
+		"@eslint/js": "^9.33.0",
 		"eslint": "^9.33.0",
 		"jest": "^29.7.0",
 		"supertest": "^7.0.0"
